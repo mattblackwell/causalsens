@@ -1,0 +1,23 @@
+\name{plot.causalsens}
+\alias{plot.causalsens}
+\title{Plot a causal sensitivity analysis.}
+\usage{
+  \method{plot}{causalsens} (x, type = "r.squared", ...)
+}
+\arguments{
+  \item{x}{\code{causalsens} object.}
+
+  \item{type}{a string taking either the value
+  \code{"r.squared"} (default), which plots the estimated
+  effects as a function of the partial R-squared values, or
+  \code{"raw"}, which plots them as a function of the raw
+  confounding values, \code{alpha}.}
+
+  \item{...}{other parameters to pass to the plot.}
+}
+\description{
+  Plot the results of a sensitivity analysis against
+  unmeasured confounding as perfomed by
+  \code{\link{causalsens}}
+}
+

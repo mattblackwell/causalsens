@@ -1,0 +1,93 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[T1]{fontenc}
+
+\usepackage{Rd}
+\usepackage{Sweave}
+\usepackage{upquote}
+
+
+% === for bad lm output ===
+% this wasn't working with rbuild
+%% so i took out the signficance stars
+%\usepackage[utf8]{inputenc}
+
+%\usepackage{Rd/Rd}
+%\usepackage{Rd/Sweave}
+%\usepackage{Rd/upquote}
+
+\SweaveOpts{width=70}
+
+% === graphic packages ===
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+% === bibliography package ===
+\usepackage{natbib}
+% === margin and formatting ===
+\usepackage{setspace}
+\usepackage{fullpage}
+\usepackage{caption}
+% === math packages ===
+\usepackage[reqno]{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb,enumerate}
+\newtheorem{Com} {Comment}
+\newtheorem{prop}{Proposition}
+\newtheorem{thm}{Theorem}
+% === dcolumn package ===
+\usepackage{dcolumn}
+\newcolumntype{.}{D{.}{.}{-1}}
+\newcolumntype{d}[1]{D{.}{.}{#1}}
+% === additional packages ===
+\usepackage{url}
+\setcounter{tocdepth}{4}
+\usepackage{tikz}
+
+%\VignetteIndexEntry{causalsens: Sensitivity Analysis for Causal Effects}
+%\VignetteDepends{}
+%\VignetteKeyWords{}
+%\VignettePackage{causalsens}
+
+\usepackage{color}
+\usepackage[pdftex, bookmarksopen=true, bookmarksnumbered=true,
+pdfstartview=FitH, breaklinks=true, urlbordercolor={0 1 0},
+citebordercolor={0 0 1}]{hyperref}
+
+\newcommand{\obs}{{\text{obs}}}
+\newcommand{\mis}{{\text{mis}}}
+%\newcommand{\Amelia}{\texttt{Amelia}}
+\renewcommand{\R}{\textsf{R}}
+\newcommand{\adjparbox}[2]{\parbox{#1}{\vspace{.35em}#2\vspace{.35em}}}
+\usepackage{vmargin}
+\topmargin=0in
+
+\title{\texttt{causalsens}: Sensitivity Analysis for Causal Effects}
+
+\author{Matthew Blackwell}
+
+\begin{document}
+
+<<echo=FALSE, print=FALSE>>=
+csVersion <- packageVersion("causalsens")
+@
+
+
+\date{Version \Sexpr{csVersion}\\ \today}
+\maketitle
+
+\tableofcontents
+\newpage
+
+
+
+\section{Introduction}
+\label{sec:intro}
+This package implements the sensitivity analysis methods proposed in \citet{Blackwell13}. 
+
+
+\bibliographystyle{apsr}
+\bibsep=0in
+\bibliography{mb}
+\end{document}
