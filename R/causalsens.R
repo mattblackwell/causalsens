@@ -141,7 +141,7 @@ plot.causalsens <- function(x, type = "r.squared", ...) {
   } else if (type == "raw") {
     plotargs$x <- x$sens$alpha
     if (is.null(plotargs$xlab)) {
-      xlab <- "Amount of confounding"
+      plotargs$xlab <- "Amount of confounding"
     }
   } else {
     stop("type must be 'r.squared' or 'raw'")
