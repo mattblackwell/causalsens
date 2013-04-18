@@ -4,7 +4,7 @@
 
 ```R
 require(devtools)
-install_github("causalsens", user = "mattblackwell", ref = "develop")
+install_github("causalsens", user = "mattblackwell", ref = "master")
 ```
 
 [senspaper]: http://www.mattblackwell.org/files/papers/sens.pdf
