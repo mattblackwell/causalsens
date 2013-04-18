@@ -7,4 +7,4 @@ require(devtools)
 install_github("causalsens", user = "mattblackwell", ref = "develop")
 ```
 
-[senspaper]: http://www.mattblackwell.org/files/paper/sens.pdf
+[senspaper]: http://www.mattblackwell.org/files/papers/sens.pdf
