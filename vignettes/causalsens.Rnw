@@ -82,6 +82,9 @@ Matthew Blackwell\thanks{Department of Political Science,
 %% causal inference
 \newcommand{\ate}{\textsc{ate}}
 \newcommand{\att}{\textsc{att}}
+\newcommand{\indep}{\perp\!\!\!\perp}
+\newcommand{\inprob}{\stackrel{p}{\rightarrow}}
+
 
 
 \newcommand{\adjparbox}[2]{\parbox{#1}{\vspace{.35em}#2\vspace{.35em}}}
@@ -106,7 +109,7 @@ Matthew Blackwell\thanks{Department of Political Science,
 <<setup, include=FALSE, cache=FALSE>>=
 # set global chunk options
 library(knitr)
-opts_chunk$set(fig.path='figure/minimal-', fig.align='center', fig.show='hold')
+opts_chunk$set(fig.path='figure/minimal-', fig.align='center', fig.show='hold',dev='pdf', dev.args=list(family="Palatino"))
 options(replace.assign=TRUE,width=90)
 #render_listings()
 @
@@ -129,9 +132,132 @@ simply assert this comparability, careful investigations of causal
 effects want to understand how deviations from this assumption will
 affect their results. This package provides a way for scholars to
 assess violation of a key causal assumption, ignorability, by
-implementing the sensitivity analysis methods proposed in \citet{Blackwell13b}. 
+implementing the sensitivity analysis methods proposed in \citet{Blackwell13b}.
 
-\section{A motivating example}
+\section{A Selection Bias Approach to Sensitivity Analysis }
+\label{sec:method}
+
+\citet{Blackwell13b} introduced an approach to sensitivity analysis
+for causal effects that directly models confounding or selection
+bias. To review, the goal of causal inference is to estimate the
+effect of a treatment, \(A_i\) on an outcome \(Y_i\). In this case, we
+will assume a binary treatment, where we call units with \(A_i = 1\)
+the treated group and the units with \(A_i = 0\) the control group. We
+can write causal effects in terms of \emph{potential outcomes} with
+\(Y_i(1)\) being the outcome value that unit \(i\) would take if they
+were treated and \(Y_i(0)\) being the outcome value under control. A
+consistency assumptions connects these potential outcomes to observed
+outcomes:
+\begin{equation}
+Y_i = Y_i(a) \quad \textrm{if } A_i = a.
+\end{equation}
+
+
+With these definitions in hand, we can define causal effects at the
+individual level:
+\begin{equation}
+\tau_i = Y_i(1) - Y_i(0).
+\end{equation}
+Unfortunately, we cannot identify or estimate these individual effects
+without strong assumptions. A ore estimable quantity is the average of
+these individual effects, called the average treatment effect (\att):
+\begin{equation}
+\tau = E[Y_i(1) - Y_i(0)],
+\end{equation}
+where the expectation is over units. In some cases, the average effect
+among the treated group is a more interesting quantity. We can define
+this parameter as:
+\begin{equation}
+\tau_{\att} = E[Y_i(1)-Y_i(0)|A_i=1].
+\end{equation}
+
+In order to obtain estimates of these quantities, we require
+assumptions that can ensure the comparability of the treatment and
+control groups. Intuitively, we need this comparability because we
+need to use the control group to estimate a counterfactual: how the
+treated would have responded to control? One major approach is to find
+a set of covariates that ensure the groups are comparable. This is
+usually called an \emph{ignorability} assumption and can be stated as 
+\begin{equation}
+Y_i(a) \indep A_i | X_i,
+\end{equation}
+for all values of the treatment, \(a\). Here, \(B \indep C | D\)
+indicates that the random variables \(B\) and \(C\) are independent,
+conditional on a set of variables, \(D\). This assumptions states that
+the treated and control groups have similar values of the potential
+outcomes, conditional on a set of covariates. Of course these groups
+will differ on the observed outcomes if there is a causal effect. But
+this assumption allows us to use, say, the control group as a proxy
+for a counterfactual of the treated group. It would be violated if
+there were unmeasured variable that affected both the treatment
+variable and the control variable. The goal of an analyst is to
+collect as much data as possible to make this assumption as plausible
+as possible.
+
+Of course, with explicit randomization, this ignorability assumption
+is obviously suspect. In order to quantify the uncertainty over
+violations of this assumption, \citet{Blackwell13b} describes the
+\emph{confounding function}. This function describes specific
+violations of ignorability. We write this function as
+\begin{equation}
+q(a,x) = E[Y_i(a) | A_i = a, X_i = x] - E[Y_i(a) | A_i = 1-a, X_i = x].
+\end{equation}
+Here, \(q\) describes how the group with \(A_i = a\) differs in their
+potential outcomes from the group with \(A_i = 1-a\) for some value of
+the covariates. Thus, it captures how the comparability between
+treatment groups breaks down. If $q = 0$ for all levels of the
+covariates, then we have ignorability because there is no difference
+between treatment and control groups in terms of their potential
+outcomes. 
+
+There a number of choices of the confounding function that
+represent different choices over the type of selection bias. One,
+which \citet{Blackwell13b} calls \emph{one-sided bias}, writes
+the confounding function as a function of a single parameter: 
+\begin{equation}
+q(a,x; \alpha) = \alpha(2a - 1). 
+\end{equation}
+Here, when \(\alpha > 0\) the potential outcomes for the treated group are
+higher on average than the potential outcomes for the control
+group. In the context of a job training program, this might be because
+the treated group is more motivated and has greater ability than those
+who do not apply for the job training program. An alternative
+parameterization of the confounding function allows for
+\emph{alignment bias}:
+\begin{equation}
+q(a,x; \alpha) = \alpha.
+\end{equation}
+Here, when \(\alpha > 0\), the observed values of the potential outcomes
+are higher than they would be if the treatment allocation was
+reversed. This might be because the treatment effect varies over the
+population and the treatment was targeted to those people for whom the
+treatment is the most effective. The choice of which confounding
+function to use depends on the most plausible violations of
+ignorability. Each confounding functions tests violations of
+ignorability specific to that function, but not others. Thus,
+researchers and critics both have important roles to play in designing
+sensitivity analyses. 
+
+With a confounding function in hand, we can see how the estimated
+effects changes as we vary the strength of confounding as summarized
+by the \(\alpha\) values above. As \citet{BruHerHan04} explains, we can
+reapply the same outcome model we used to estimate the original effect
+on a confounding-adjusted outcome:
+\begin{equation}
+  \label{eq:yadj}
+  Y^{q}_i = Y_i  - q(A_i, X_i)\Pr[1-A_i|X_i].
+\end{equation}
+Here, we are essentially subtracting off the bias due to
+confounding that is implied by the confounding function. Note that
+this also requires an estimate of the propensity score, or the
+probability of treatment, conditional on the covariates. Once we have
+this adjusted outcome, we can rerun our original outcome model on this
+adjusted outcome to get an estimate of the causal effect under this
+assumption about confounding. Clearly, when \(q = 0\), this will
+recover the effect estimated under ignorability. 
+
+
+\section{An Illustration}
 \label{sec:lalonde}
 
 An illustration is helpful to see how the sensitivity analysis
@@ -139,7 +265,7 @@ works. First, we need to load the data and specify a model for the
 outcome. This could be a difference in means or it could a more
 complicated model for the mean outcome, conditional on covariates. The
 data in this case come from a job training program first studied in
-\citet{LaLonde86}. 
+\citet{LaLonde86}.
 
 <<loaddata, include=TRUE, cache=FALSE, tidy=FALSE>>=
 library(causalsens)
@@ -152,7 +278,7 @@ We then need a model for the relationship between the treatment
 variable and the covariates. This is often called the propensity score
 model because we use predicted values from this model as estimates of
 the propensity score. In general, this will be a generalized linear
-model (GLM) of some sort. 
+model (GLM) of some sort.
 
 <<pscoremodel, tidy=FALSE>>=
 pmodel <- glm(treat ~ age + education + black + hispanic + married +
@@ -166,7 +292,7 @@ estimate the effect of treatment under a number of different
 assumptions about the direction and magnitude of unmeasured
 confounding. We also have to choose a confounding function. This is
 the function that describes how the selection bias varies by treatment
-status, if at all. 
+status, if at all.
 
 <<causalsens, tidy=FALSE>>=
 alpha <- seq(-4500, 4500, by = 250)
@@ -175,7 +301,7 @@ ll.sens <- causalsens(ymodel, pmodel, ~ age + education, data = lalonde.exp,
 @
 
 Once we have run the sensitivity analysis, we can plot the results to
-get a sense of the sensitivity of our estimates. 
+get a sense of the sensitivity of our estimates.
 
 <<sensplot,echo=2:3,eval=FALSE>>=
 par(mfrow=c(1,2))
