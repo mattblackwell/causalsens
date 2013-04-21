@@ -1,23 +1,9 @@
-\documentclass[12pt,letterpaper]{article}
+\documentclass[11pt, article,onesided]{memoir}
 
 \usepackage[T1]{fontenc}
-
-\usepackage{Rd}
-\usepackage{Sweave}
-\usepackage{upquote}
-
-
-% === for bad lm output ===
-% this wasn't working with rbuild
-%% so i took out the signficance stars
-%\usepackage[utf8]{inputenc}
-
-%\usepackage{Rd/Rd}
-%\usepackage{Rd/Sweave}
-%\usepackage{Rd/upquote}
-
-\SweaveOpts{width=70}
-
+\usepackage{mathpazo}
+\renewcommand{\sfdefault}{lmss}
+\renewcommand{\ttdefault}{lmtt}
 % === graphic packages ===
 \usepackage{graphicx}
 \usepackage{epstopdf}
@@ -44,47 +30,163 @@
 \usepackage{url}
 \setcounter{tocdepth}{4}
 \usepackage{tikz}
-
+\usepackage[toc]{multitoc}
 %\VignetteIndexEntry{causalsens: Sensitivity Analysis for Causal Effects}
 %\VignetteDepends{}
 %\VignetteKeyWords{}
 %\VignettePackage{causalsens}
+%\VignetteEngine{knitr}
+
+%% Name, Title, Affiliation, Contact. Change as needed.
+\def\myaffiliation{University of Rochester}
+\def\myauthor{ %
+Matthew Blackwell
+}
+\def\mylongauthor{
+Matthew Blackwell\thanks{Department of Political Science,
+    University of Rochester. web:
+    \mbox{\url{http://www.mattblackwell.org}} email: \mbox{\texttt{\href{mailto:m.blackwell@rochester.edu}{m.blackwell@rochester.edu}}}}
+}
+\def\mytitle{causalsens: Sensitivity Analysis for Causal Effects}
+\def\mykeywords{Matthew Blackwell, Political Science}
+
 
 \usepackage{color}
-\usepackage[pdftex, bookmarksopen=true, bookmarksnumbered=true,
-pdfstartview=FitH, breaklinks=true, urlbordercolor={0 1 0},
-citebordercolor={0 0 1}]{hyperref}
+\definecolor{gray}{rgb}{0.459,0.438,0.471}
+\definecolor{spot}{rgb}{0.6,0,0}
+\usepackage[pdftex,
+            plainpages=false,
+            pdfpagelabels,
+            bookmarksnumbered,
+            pdftitle={\mytitle},
+            pdfauthor={\myauthor},
+            pdfkeywords={\mykeywords},
+            colorlinks=true,
+            citecolor=spot,
+            linkcolor=spot,
+            urlcolor=spot
+            ]{hyperref}
+
+
+\makeatletter
+\newcommand\org@hypertarget{}
+\let\org@hypertarget\hypertarget
+\renewcommand\hypertarget[2]{%
+\Hy@raisedlink{\org@hypertarget{#1}{}}#2%
+} \makeatother
 
 \newcommand{\obs}{{\text{obs}}}
 \newcommand{\mis}{{\text{mis}}}
 %\newcommand{\Amelia}{\texttt{Amelia}}
-\renewcommand{\R}{\textsf{R}}
+%\renewcommand{\R}{\textsf{R}}
+%% causal inference
+\newcommand{\ate}{\textsc{ate}}
+\newcommand{\att}{\textsc{att}}
+
+
 \newcommand{\adjparbox}[2]{\parbox{#1}{\vspace{.35em}#2\vspace{.35em}}}
-\usepackage{vmargin}
-\topmargin=0in
 
-\title{\texttt{causalsens}: Sensitivity Analysis for Causal Effects}
+\counterwithout{section}{chapter}
 
-\author{Matthew Blackwell}
+    % Title flush left
+    \pretitle{\begin{flushleft}\LARGE}
+    \posttitle{\end{flushleft}\par\vskip 0.5em}
+    \preauthor{\begin{flushleft}\sffamily  \Large \vspace{0.25em}}
+    \postauthor{\end{flushleft}}
+    \predate{\begin{flushleft}\sffamily \small\vspace{0.9em}}
+    \postdate{\end{flushleft}\par\vskip 1.5em}
 
+
+\title{\mytitle}
+
+\author{\mylongauthor}
+%% \usepackage{listings}
+%% \lstset{breaklines=true,basicstyle=\footnotesize\ttfamily}
 \begin{document}
-
-<<echo=FALSE, print=FALSE>>=
-csVersion <- packageVersion("causalsens")
+<<setup, include=FALSE, cache=FALSE>>=
+# set global chunk options
+library(knitr)
+opts_chunk$set(fig.path='figure/minimal-', fig.align='center', fig.show='hold')
+options(replace.assign=TRUE,width=90)
+#render_listings()
 @
 
 
-\date{Version \Sexpr{csVersion}\\ \today}
 \maketitle
-
-\tableofcontents
-\newpage
+%% \tableofcontents
+%% \newpage
 
 
 
 \section{Introduction}
 \label{sec:intro}
-This package implements the sensitivity analysis methods proposed in \citet{Blackwell13}. 
+
+The cornerstone of causal inference are assumptions about the
+comparability of groups. Our goal, either by randomization or
+conditioning, is to find groups of observations that are similar on
+all variables except the variable of interest. And while most studies
+simply assert this comparability, careful investigations of causal
+effects want to understand how deviations from this assumption will
+affect their results. This package provides a way for scholars to
+assess violation of a key causal assumption, ignorability, by
+implementing the sensitivity analysis methods proposed in \citet{Blackwell13b}. 
+
+\section{A motivating example}
+\label{sec:lalonde}
+
+An illustration is helpful to see how the sensitivity analysis
+works. First, we need to load the data and specify a model for the
+outcome. This could be a difference in means or it could a more
+complicated model for the mean outcome, conditional on covariates. The
+data in this case come from a job training program first studied in
+\citet{LaLonde86}. 
+
+<<loaddata, include=TRUE, cache=FALSE, tidy=FALSE>>=
+library(causalsens)
+data(lalonde.exp)
+ymodel <- lm(re78 ~ treat+age + education + black + hispanic + married +
+             nodegree + re74 + re75 + u74 + u75, data = lalonde.exp)
+@
+
+We then need a model for the relationship between the treatment
+variable and the covariates. This is often called the propensity score
+model because we use predicted values from this model as estimates of
+the propensity score. In general, this will be a generalized linear
+model (GLM) of some sort. 
+
+<<pscoremodel, tidy=FALSE>>=
+pmodel <- glm(treat ~ age + education + black + hispanic + married +
+              nodegree + re74 + re75 + u74 + u75, data = lalonde.exp,
+              family = binomial())
+@
+
+With these two models in hand, we can run the sensitivity analysis by
+passing these two models to the \texttt{causalsens} function, which will
+estimate the effect of treatment under a number of different
+assumptions about the direction and magnitude of unmeasured
+confounding. We also have to choose a confounding function. This is
+the function that describes how the selection bias varies by treatment
+status, if at all. 
+
+<<causalsens, tidy=FALSE>>=
+alpha <- seq(-4500, 4500, by = 250)
+ll.sens <- causalsens(ymodel, pmodel, ~ age + education, data = lalonde.exp,
+                      alpha = alpha, confound = one.sided.att)
+@
+
+Once we have run the sensitivity analysis, we can plot the results to
+get a sense of the sensitivity of our estimates. 
+
+<<sensplot,echo=2:3,eval=FALSE>>=
+par(mfrow=c(1,2))
+plot(ll.sens, type = "raw", bty = "n")
+plot(ll.sens, type = "r.squared", bty = "n")
+@
+
+
+<<sensplot, fig.width=10, fig.height=5, fig.cap="Results from LaLonde (1986)",echo=FALSE>>=
+@
+
 
 
 \bibliographystyle{apsr}

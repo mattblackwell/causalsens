@@ -10,5 +10,7 @@ Description: A package to study how various assumptions about selection bias
     affects estimates of causal effects.
 License: GPL (>= 2)
 URL: http://www.mattblackwell.org/software/causalsens/
+VignetteBuilder: knitr
+Suggests: knitr
 Collate:
     'causalsens.R'
