@@ -224,9 +224,10 @@ plot.causalsens <- function(x, type = "r.squared", ...) {
   polygon(x = c(plotargs$x, rev(plotargs$x)),
           y = c(x$sens$lower, rev(x$sens$upper)),
           col =rgb(0.5, 0.5, 0.5, alpha = 0.5), border = NA)
-
-  points(x = x$partial.r2, y = rep(0, length(x$partial.r2)), pch = 4)
-  points(x = -x$partial.r2, y = rep(0, length(x$partial.r2)), pch = 4)
+  if (type == "r.squared") {
+    points(x = x$partial.r2, y = rep(0, length(x$partial.r2)), pch = 4)
+    points(x = -x$partial.r2, y = rep(0, length(x$partial.r2)), pch = 4)
+  }
   invisible()
 }
 
