@@ -177,7 +177,7 @@ control groups. Intuitively, we need this comparability because we
 need to use the control group to estimate a counterfactual: how the
 treated would have responded to control? One major approach is to find
 a set of covariates that ensure the groups are comparable. This is
-usually called an \emph{ignorability} assumption and can be stated as 
+usually called an \emph{ignorability} assumption and can be stated as
 \begin{equation}
 Y_i(a) \indep A_i | X_i,
 \end{equation}
@@ -208,14 +208,14 @@ the covariates. Thus, it captures how the comparability between
 treatment groups breaks down. If $q = 0$ for all levels of the
 covariates, then we have ignorability because there is no difference
 between treatment and control groups in terms of their potential
-outcomes. 
+outcomes.
 
 There a number of choices of the confounding function that
 represent different choices over the type of selection bias. One,
 which \citet{Blackwell13b} calls \emph{one-sided bias}, writes
-the confounding function as a function of a single parameter: 
+the confounding function as a function of a single parameter:
 \begin{equation}
-q(a,x; \alpha) = \alpha(2a - 1). 
+q(a,x; \alpha) = \alpha(2a - 1).
 \end{equation}
 Here, when \(\alpha > 0\) the potential outcomes for the treated group are
 higher on average than the potential outcomes for the control
@@ -236,7 +236,7 @@ function to use depends on the most plausible violations of
 ignorability. Each confounding functions tests violations of
 ignorability specific to that function, but not others. Thus,
 researchers and critics both have important roles to play in designing
-sensitivity analyses. 
+sensitivity analyses.
 
 With a confounding function in hand, we can see how the estimated
 effects changes as we vary the strength of confounding as summarized
@@ -254,45 +254,67 @@ probability of treatment, conditional on the covariates. Once we have
 this adjusted outcome, we can rerun our original outcome model on this
 adjusted outcome to get an estimate of the causal effect under this
 assumption about confounding. Clearly, when \(q = 0\), this will
-recover the effect estimated under ignorability. 
+recover the effect estimated under ignorability.
 
 
 \section{An Illustration}
 \label{sec:lalonde}
 
-An illustration is helpful to see how the sensitivity analysis
-works. First, we need to load the data and specify a model for the
-outcome. This could be a difference in means or it could a more
-complicated model for the mean outcome, conditional on covariates. The
-data in this case come from a job training program first studied in
-\citet{LaLonde86}.
+An illustration is helpful to see how this selection bias approach to
+sensitivity analysis works.  The data in this case come from a job training program
+first studied in \citet{LaLonde86}, which has a long history in the
+causal inference literature on matching estimators. The data comes
+from the National Supported Work program, which instituted a
+randomized experiment to evaluate the effectiveness of a job training
+program. The \texttt{lalonde.exp} dataset in the \texttt{causalsens}
+package is the 445 experimental units with complete data on their
+pre-treatment income. To begin, we load the package and the data:
 
 <<loaddata, include=TRUE, cache=FALSE, tidy=FALSE>>=
 library(causalsens)
 data(lalonde.exp)
-ymodel <- lm(re78 ~ treat+age + education + black + hispanic + married +
-             nodegree + re74 + re75 + u74 + u75, data = lalonde.exp)
 @
 
-We then need a model for the relationship between the treatment
-variable and the covariates. This is often called the propensity score
-model because we use predicted values from this model as estimates of
-the propensity score. In general, this will be a generalized linear
-model (GLM) of some sort.
+To begin, we fit a regression model to this data, with the outcome of
+interest, earnings in 1978 (\texttt{re78}), as a function of
+participating in the program (\texttt{treat}) and various
+pre-treatment covariates.
+<<outcomemodel, tidy=FALSE>>=
+ymodel <- lm(re78 ~ treat+age + education + black + hispanic + married +
+             nodegree + re74 + re75 + u74 + u75, data = lalonde.exp)
+summary(ymodel)
+@
+
+From this, we get an estimate of the treatment effect, which is the
+coefficient on \texttt{treat}. Of course, this effect requires an
+ignorability assumption, so that conditional on the covariates, the
+treated and control groups are comparable. In this case, the data is
+experimental in this case so this assumption is very plausible. But we
+still may want to check out violations of this assumption might affect
+our results. To do this, we then need a model for the relationship
+between the treatment variable and the covariates. This is often
+called the propensity score model because we use predicted values from
+this model as estimates of the propensity score. In general, this will
+be a generalized linear model (GLM) of some sort.
 
 <<pscoremodel, tidy=FALSE>>=
 pmodel <- glm(treat ~ age + education + black + hispanic + married +
               nodegree + re74 + re75 + u74 + u75, data = lalonde.exp,
               family = binomial())
+summary(pmodel)
 @
 
 With these two models in hand, we can run the sensitivity analysis by
 passing these two models to the \texttt{causalsens} function, which will
 estimate the effect of treatment under a number of different
 assumptions about the direction and magnitude of unmeasured
-confounding. We also have to choose a confounding function. This is
-the function that describes how the selection bias varies by treatment
-status, if at all.
+confounding. We also have to choose a confounding function. Here we
+use the one-sided confounding function, focused on the \att
+parameter. \texttt{causalsens} provides a number of confounding
+functions, including the one-sided and alignment bias functions above,
+but users can specify their own confounding function as well. We also
+generate a sequence of values for \(\alpha\) to determine the range of
+possible magnitude of ignorability violations. 
 
 <<causalsens, tidy=FALSE>>=
 alpha <- seq(-4500, 4500, by = 250)
@@ -301,7 +323,8 @@ ll.sens <- causalsens(ymodel, pmodel, ~ age + education, data = lalonde.exp,
 @
 
 Once we have run the sensitivity analysis, we can plot the results to
-get a sense of the sensitivity of our estimates.
+get a sense of the sensitivity of our estimates, which we plot in
+Figure~\ref{fig:sensplot}. 
 
 <<sensplot,echo=2:3,eval=FALSE>>=
 par(mfrow=c(1,2))
@@ -309,13 +332,22 @@ plot(ll.sens, type = "raw", bty = "n")
 plot(ll.sens, type = "r.squared", bty = "n")
 @
 
-
 <<sensplot, fig.width=10, fig.height=5, fig.cap="Results from LaLonde (1986)",echo=FALSE>>=
 @
+
+In these plots, we can see the difference between the raw confounding
+in terms of \(\alpha\) and the sensitivity in terms of variance explained
+by confounding. In addition, we can compare the strength of
+confounding against the variance explained by the
+covariates. Obviously, there may be other confounding functions to
+check and other amounts of confounding to investigate, but this
+represents a first pass at analyzes the sensitivity of causal
+estimates in the face of unmeasured confounding. 
+
 
 
 
 \bibliographystyle{apsr}
 \bibsep=0in
-\bibliography{mb}
+\bibliography{causalsens}
 \end{document}
