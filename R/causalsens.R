@@ -81,7 +81,8 @@ NULL
 ##' @param data data frame to find the covariates from \code{cov.form}.
 ##' @param alpha vector of confounding values to pass the confounding
 ##' function. Defaults to 11 points from -0.5 to 0.5 for binary
-##' outcome variable, and 11 points covering the inter-quartile range for
+##' outcome variable, and 11 points covering the
+##' a interval with width equal to the inter-quartile range and centered at 0 for
 ##' non-binary outcome variables.
 ##' @return Returns an object of class \code{causalsens}.
 ##' \itemize{
@@ -116,10 +117,11 @@ causalsens <- function(model.y, model.t, cov.form, confound = one.sided, data, a
   y.dat <- cbind(y.dat, c.dat)
 
   if (missing(alpha)) {
-    if (length(unique(y.dat[,1]))) {
+    if (length(unique(y.dat[,1])) == 2) {
       alpha <- seq(-0.5, 0.5, length = 11)
     } else {
-      alpha <- seq(quantile(y.dat[,1], 0.25), quantile(y.dat[,1], 0.75), length = 11)
+      iqr <- quantile(y.dat[,1], 0.75) - quantile(y.dat[,1], 0.25)
+      alpha <- seq(-iqr/2, iqr/2, length = 11)
     }
   }
 
