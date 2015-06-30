@@ -196,34 +196,35 @@ summary.causalsens <- function(object, ...) {
 ##' function of the raw confounding values, \code{alpha}.
 ##' @param ... other parameters to pass to the plot.
 plot.causalsens <- function(x, type = "r.squared", ...) {
-  plotargs <- list(...)
-  if (type == "r.squared") {
-    plotargs$x <- sign(x$sens$alpha) * x$sens$rsqs
-    if (is.null(plotargs$xlab)) {
-      plotargs$xlab <- "Variance explained by confounding"
+  m <- match.call(expand.dots = TRUE)
+  m[[1L]] <- quote(graphics::plot)
+  if (m$type == "r.squared") {
+    m$x <- sign(x$sens$alpha) * x$sens$rsqs
+    if (is.null(m$xlab)) {
+      m$xlab <- "Variance explained by confounding"
     }
   } else if (type == "raw") {
-    plotargs$x <- x$sens$alpha
-    if (is.null(plotargs$xlab)) {
-      plotargs$xlab <- "Amount of confounding"
+    m$x <- x$sens$alpha
+    if (is.null(m$xlab)) {
+      m$xlab <- "Amount of confounding"
     }
   } else {
     stop("type must be 'r.squared' or 'raw'")
   }
-  if (is.null(plotargs$ylim)) {
-    plotargs$ylim <- c(min(x$sens$lower), max(x$sens$upper))
+  if (is.null(m$ylim)) {
+    m$ylim <- c(min(x$sens$lower), max(x$sens$upper))
   }
-  if (is.null(plotargs$ylab)) {
-    plotargs$ylab <- "Estimated effect"
+  if (is.null(m$ylab)) {
+    m$ylab <- "Estimated effect"
   }
-  plotargs$y <- x$sens$estimate
-  plotargs$type <- "l"
-  do.call(plot, plotargs)
+  m$y <- x$sens$estimate
+  m$type <- "l"
+  eval(m, parent.frame())
   ## plot(x = xpoints, y = x$sens$estimate, type = "l", ylim = ylim,
   ##      xlab = xlab, ylab = "Estimated effect", ...)
   abline(h = 0, col = "grey")
   abline(v = 0, col = "grey")
-  polygon(x = c(plotargs$x, rev(plotargs$x)),
+  polygon(x = c(m$x, rev(m$x)),
           y = c(x$sens$lower, rev(x$sens$upper)),
           col =rgb(0.5, 0.5, 0.5, alpha = 0.5), border = NA)
   if (type == "r.squared") {
