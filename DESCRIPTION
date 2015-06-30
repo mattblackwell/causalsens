@@ -4,6 +4,7 @@ Date: 2013-05-01
 Title: Selection Bias Approach to Sensitivity Analysis for Causal Effects
 Author: Matthew Blackwell <mblackwell@gov.harvard.edu.edu>
 Maintainer: Matthew Blackwell <mblackwell@gov.harvard.edu>
+Imports: stats, graphics, grDevices
 Depends:
     R (>= 3.0.0)
 Description: The causalsens package provides functions to perform sensitivity analyses and to study how various assumptions about selection bias affects estimates of causal effects.
