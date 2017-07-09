@@ -284,8 +284,9 @@ plot.causalsens <- function(x, type = "r.squared", ...) {
           y = c(x$sens$lower, rev(x$sens$upper)),
           col = rgb(0.5, 0.5, 0.5, alpha = 0.5), border = NA)
   if (type == "r.squared") {
-    points(x = x$partial.r2, y = rep(0, length(x$partial.r2)), pch = 4)
-    points(x = -x$partial.r2, y = rep(0, length(x$partial.r2)), pch = 4)
+    abline(min(x$sens$lower),0,col="lightgray")
+    points(x = x$partial.r2, y = rep(min(x$sens$lower), length(x$partial.r2)), pch = 4)
+    points(x = -x$partial.r2, y = rep(min(x$sens$lower), length(x$partial.r2)), pch = 4)
   }
   invisible()
 }
