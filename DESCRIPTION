@@ -1,6 +1,6 @@
 Package: causalsens
-Version: 0.1.1
-Date: 2013-05-01
+Version: 0.1.2
+Date: 2018-06-18
 Title: Selection Bias Approach to Sensitivity Analysis for Causal Effects
 Author: Matthew Blackwell <mblackwell@gov.harvard.edu.edu>
 Maintainer: Matthew Blackwell <mblackwell@gov.harvard.edu>
