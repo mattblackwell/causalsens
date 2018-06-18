@@ -198,7 +198,7 @@ summary.causalsens <- function(object, ...) {
 plot.causalsens <- function(x, type = "r.squared", ...) {
   m <- match.call(expand.dots = TRUE)
   m[[1L]] <- quote(graphics::plot)
-  if (m$type == "r.squared") {
+  if (type == "r.squared") {
     m$x <- sign(x$sens$alpha) * x$sens$rsqs
     if (is.null(m$xlab)) {
       m$xlab <- "Variance explained by confounding"
