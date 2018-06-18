@@ -258,12 +258,12 @@ alignment <- function(alpha, pscores, treat) {
 ##' @rdname one.sided
 ##' @export
 one.sided.att <- function(alpha, pscores, treat) {
-  adj <- -alpha * pscores * (1 - treat)
+  adj <- -alpha  * (1 - treat)
   return(adj)
 }
 ##' @rdname one.sided
 ##' @export
 alignment.att <- function(alpha, pscores, treat) {
-  adj <- alpha * pscores * (1 - treat)
+  adj <- alpha  * (1 - treat)
   return(adj)
 }
