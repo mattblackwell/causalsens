@@ -173,7 +173,7 @@ causalsens <- function(model.y, model.t, cov.form, confound = one.sided,
       s.out <- lm.wfit(x = X, y = y.adj, w = w, offset = model.y$offset)
       r.out <- lm.wfit(x = X0, y = y.adj[treat == 0], w = w[treat == 0],
                        offset = model.y$offset[treat == 0])
-      s.rss <- sum(w[treat == 0] * s.out$residuals ^ 2)
+      s.rss <- sum(w * s.out$residuals ^ 2)
       r.rss <- sum(w[treat == 0] * r.out$residuals ^ 2)
       vt <- sum(w * (treat - mean(treat)) ^ 2) / (N - 1)
     }
@@ -198,7 +198,7 @@ causalsens <- function(model.y, model.t, cov.form, confound = one.sided,
                     offset = model.y$offset[treat == 0])
     pa.rss <- sum(p.all$residuals ^ 2)
   } else {
-    p.all <- lm.fit(Xall[treat == 0, ], y[treat == 0], w = w[treat == 0],
+    p.all <- lm.wfit(Xall[treat == 0, ], y[treat == 0], w = w[treat == 0],
                     offset = model.y$offset[treat == 0])
     pa.rss <- sum(w[treat == 0] * p.all$residuals ^ 2)
   }
@@ -209,7 +209,7 @@ causalsens <- function(model.y, model.t, cov.form, confound = one.sided,
                       offset = model.y$offset[treat == 0])
       p.rss <- sum(p.out$residuals ^ 2)
     } else {
-      p.out <- lm.fit(Xall[treat == 0, jj, drop = FALSE], y[treat == 0],
+      p.out <- lm.wfit(Xall[treat == 0, jj, drop = FALSE], y[treat == 0],
                       w = w[treat == 0], offset = model.y$offset[treat == 0])
       p.rss <- sum(w[treat == 0] * p.out$residuals ^ 2)
     }
