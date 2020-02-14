@@ -91,74 +91,126 @@ NULL
 ##' \item \code{partial.r2} vector of partial R^2 values for the
 ##' covariates to compare to sensitivity analysis results.
 ##' }
+##'
+##' @examples
+##' data(lalonde.exp)
+##'
+##' ymodel <- lm(re78 ~ treat+age + education + black + hispanic +
+##' married + nodegree + re74 + re75 + u74 + u75, data = lalonde.exp)
+##' 
+##' pmodel <- glm(treat ~ age + education + black + hispanic + married
+##' + nodegree + re74 + re75 + u74 + u75, data = lalonde.exp,
+##' family = binomial())
+##'
+##' alpha <- seq(-4500, 4500, by = 250)
+##'
+##' ll.sens <- causalsens(ymodel, pmodel, ~ age + education, data =
+##' lalonde.exp, alpha = alpha, confound = one.sided.att)
+##' 
 ##' @export
-causalsens <- function(model.y, model.t, cov.form, confound = one.sided, data, alpha) {
+causalsens <- function(model.y, model.t, cov.form, confound = one.sided,
+                       data, alpha, level = 0.95) {
 
   if (inherits(model.y, "glm")) {
     stop("Only works for linear outcome models right now. Check back soon.")
   }
-  y.dat <- model.frame(model.y)
-  t.dat <- model.frame(model.t)
-  c.dat <- model.frame(cov.form, data)
-  pscores <- fitted(model.t)
-  rn.y <- row.names(y.dat)
-  rn.t <- row.names(t.dat)
+  y.dat <- model.frame(model.y, data = data)
+  t.dat <- model.frame(model.t, data = data)
   t.name <- colnames(t.dat)[1]
+
+  treat <- model.response(t.dat)
+  y <- model.response(y.dat)
+  w <- model.weights(y.dat)
+  X <- model.matrix(model.y, y.dat)
+  pscores <- fitted(model.t)
+  
+  mt_c <- terms(cov.form, data = data)
+  attr(mt_c, "intercept") <- 0
+  overlap <- attr(mt_c, "term.labels") %in% colnames(X)
+  Xc <- model.matrix(mt_c, data)[, !overlap]
+  rn.y <- row.names(X)
+  rn.t <- names(pscores)
+  K <- ncol(X)
 
   if (!identical(rn.y, rn.t)) {
     bothrows <- intersect(rn.y, rn.t)
-    y.dat <- y.dat[bothrows,]
-    t.dat <- t.dat[bothrows,]
-    c.dat <- c.dat[bothrows,]
+    X <- X[bothrows, ]
+    Xc <- Xc[bothrows, ]
+    y <- y[bothrows]
+    treat <- treat[bothrows]
     pscores <- pscores[bothrows]
+    if (!is.null(w)) w <- w[bothrows]
   }
-
-  c.dat <- c.dat[,!(colnames(c.dat) %in% colnames(y.dat))]
-  y.dat <- cbind(y.dat, c.dat)
+  Xall <- cbind(X, Xc)
+  X0 <- X[treat == 0, -which(colnames(X) == t.name)]
 
   if (missing(alpha)) {
-    if (length(unique(y.dat[,1])) == 2) {
+    if (length(unique(y)) == 2) {
       alpha <- seq(-0.5, 0.5, length = 11)
     } else {
-      iqr <- quantile(y.dat[,1], 0.75) - quantile(y.dat[,1], 0.25)
-      alpha <- seq(-iqr/2, iqr/2, length = 11)
+      iqr <- quantile(y, 0.75) - quantile(y, 0.25)
+      alpha <- seq(-iqr / 2, iqr / 2, length = 11)
     }
   }
 
-  if ("(weights)" %in% colnames(y.dat)) {
-    colnames(y.dat)[colnames(y.dat) == "(weights)"] <- as.character(model.y$call$weights)
-  }
-
-  rsq.form <- cov.form
-  rsq.form[[2]] <- as.name("y.adj")
-  rsq.form[[3]] <- cov.form[[2]]
-
-  all.covs <- union(all.vars(model.y$terms[[3]]), all.vars(cov.form))
-  all.covs <- all.covs[all.covs != t.name]
-  partial.form <- as.formula(paste(colnames(y.dat)[1],
-                                   paste(all.covs, collapse = " + "), sep = " ~ "))
-
-  sens.form <- model.y$terms
-  sens.form[[2]] <- as.name("y.adj")
-
-  sens <- matrix(NA, nrow = length(alpha), ncol = 5)
-  colnames(sens) <- c("rsqs","alpha", "estimate", "lower", "upper")
-  sens[,"alpha"] <- alpha
-  y.dat$y.adj <- NA
+  sens <- matrix(NA, nrow = length(alpha), ncol = 6)
+  colnames(sens) <- c("rsqs", "alpha", "estimate", "lower", "upper", "se")
+  sens[, "alpha"] <- alpha
   for (j in 1:length(alpha)) {
-    adj <- do.call(confound, list(alpha = alpha[j], pscores = pscores, treat = t.dat[,1]))
-    y.dat$y.adj <- y.dat[,1] - adj
-    s.out <- update(model.y, formula. = sens.form, data = y.dat)
-    r.out <- update(model.y, formula = rsq.form, data = y.dat[t.dat[,1] == 0,])
-    sens[j,4:5] <- confint(s.out)[t.name,]
-    sens[j,3] <- coef(s.out)[t.name]
-    sens[j,1] <- alpha[j]^2 * var(t.dat[,1])/var(residuals(s.out))
+    adj <- confound(alpha = alpha[j], pscores = pscores, treat = treat)
+    y.adj <- y - adj
+    if (is.null(w)) {
+      s.out <- lm.fit(x = X, y = y.adj, offset = model.y$offset)
+      r.out <- lm.fit(x = X0, y = y.adj[treat == 0],
+                      offset = model.y$offset[treat == 0])
+      s.rss <- sum(s.out$residuals ^ 2)
+      r.rss <- sum(r.out$residuals ^ 2)
+    } else {
+      s.out <- lm.wfit(x = X, y = y.adj, w = w, offset = model.y$offset)
+      r.out <- lm.wfit(x = X0, y = y.adj[treat == 0], w = w[treat == 0],
+                       offset = model.y$offset[treat == 0])
+      s.rss <- sum(w[treat == 0] * s.out$residuals ^ 2)
+      r.rss <- sum(w[treat == 0] * r.out$residuals ^ 2)
+    }
+    s.sigma2 <- s.rss / s.out$df.residual
+    r.sigma2 <- r.rss / r.out$df.residual
+    R <- s.sigma2  * chol2inv(s.out$qr$qr[1L:K, 1L:K, drop = FALSE])
+    q.alpha <- abs(qt( (1 - level) / 2, df = s.out$df.residual))
+    t.pos <- which(names(coef(s.out)) == t.name)
+    sens.se <- sqrt(R[t.pos, t.pos])
+    sens[j, 3] <- coef(s.out)[t.pos]
+    sens[j, 4] <- coef(s.out)[t.pos] - q.alpha * sens.se
+    sens[j, 5] <- coef(s.out)[t.pos] + q.alpha * sens.se
+    sens[j, 6] <- sens.se
+    sens[j, 1] <- alpha[j] ^ 2 * var(treat) / r.sigma2
   }
 
-  partial.out <- lm(partial.form, data = y.dat[t.dat[,1] == 0,])
-  dropmat <- drop1(partial.out)
-  prsqs <- dropmat[-1,2]/dropmat[-1,3]
-  names(prsqs) <- rownames(dropmat)[-1]
+  ## Calculate all partial R^2 for covariates in untreated group.
+  Kc <- ncol(Xall)
+  prsqs <- rep(NA, Kc - 1)
+  if (is.null(w)) {
+    p.all <- lm.fit(Xall[treat == 0, ], y[treat == 0],
+                    offset = model.y$offset[treat == 0])
+    pa.rss <- sum(p.all$residuals ^ 2)
+  } else {
+    p.all <- lm.fit(Xall[treat == 0, ], y[treat == 0], w = w[treat == 0],
+                    offset = model.y$offset[treat == 0])
+    pa.rss <- sum(w[treat == 0] * p.all$residuals ^ 2)
+  }
+  for (k in 2:Kc) {
+    jj <- setdiff(1L:Kc, k)
+    if (is.null(w)) {
+      p.out <- lm.fit(Xall[treat == 0, jj, drop = FALSE], y[treat == 0],
+                      offset = model.y$offset[treat == 0])
+      p.rss <- sum(p.out$residuals ^ 2)
+    } else {
+      p.out <- lm.fit(Xall[treat == 0, jj, drop = FALSE], y[treat == 0],
+                      w = w[treat == 0], offset = model.y$offset[treat == 0])
+      p.rss <- sum(w[treat == 0] * p.out$residuals ^ 2)
+    }
+    prsqs[k - 1] <- (p.rss - pa.rss) / p.rss
+    names(prsqs)[k - 1] <- colnames(X)[k]
+  }
   out <- list(sens = data.frame(sens), partial.r2 = prsqs)
   class(out) <- "causalsens"
   return(out)
